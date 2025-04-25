@@ -1,311 +1,372 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, Bell, Download, Globe, Key, LogOut, Moon, Shield, Smartphone, Sun } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import {
+  Settings,
+  Moon,
+  Sun,
+  Laptop,
+  Lock,
+  Fingerprint,
+  Globe,
+  Save,
+  RefreshCw,
+  AlertTriangle,
+  Info,
+} from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
+import { getUserData, storeUserData } from "@/lib/storage-utils"
+import { canAccessFeature } from "@/lib/access-control"
+import type { User } from "@/lib/types"
+import { mockUser, mockUserLimited, mockUserPartial } from "@/lib/mock-data"
 
 export default function SettingsPage() {
-  const [darkMode, setDarkMode] = useState(false)
-  const [biometricAuth, setBiometricAuth] = useState(true)
-  const [notifications, setNotifications] = useState(true)
-  const [backupEnabled, setBackupEnabled] = useState(false)
-  const [language, setLanguage] = useState("english")
+  const router = useRouter()
+  const { toast } = useToast()
+  const [currentUser, setCurrentUser] = useState<User>(mockUser)
+  const [saving, setSaving] = useState(false)
+
+  // Load user data
+  useEffect(() => {
+    const userData = getUserData("temp-encryption-key")
+    if (userData) {
+      // For demo purposes, we'll use mock users based on verification status
+      if (userData.verificationStatus === "verified") {
+        setCurrentUser(mockUser)
+      } else if (userData.verificationStatus === "partial") {
+        setCurrentUser(mockUserPartial)
+      } else {
+        setCurrentUser(mockUserLimited)
+      }
+    }
+  }, [])
+
+  const handleSaveSettings = () => {
+    setSaving(true)
+
+    // Simulate saving settings
+    setTimeout(() => {
+      storeUserData(currentUser, "temp-encryption-key")
+      setSaving(false)
+
+      toast({
+        title: "Settings saved",
+        description: "Your settings have been updated successfully",
+      })
+    }, 1000)
+  }
+
+  const updateSettings = (key: keyof User["settings"], value: any) => {
+    setCurrentUser({
+      ...currentUser,
+      settings: {
+        ...currentUser.settings,
+        [key]: value,
+      },
+    })
+  }
+
+  const canUseOfflineMode = canAccessFeature(currentUser, "offlineSupport")
+  const canUseZkp = canAccessFeature(currentUser, "zkpSupport")
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard" className="text-gray-500 hover:text-gray-900">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <h1 className="text-xl font-bold">Settings</h1>
-          </div>
+    <div className="container space-y-6 py-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Settings className="h-6 w-6 text-primary" />
+          <h2 className="text-2xl font-bold">Settings</h2>
         </div>
-      </header>
+        <Button onClick={handleSaveSettings} disabled={saving}>
+          {saving ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Save Settings
+            </>
+          )}
+        </Button>
+      </div>
 
-      <div className="container mx-auto px-4 py-6 max-w-3xl">
-        <Tabs defaultValue="account" className="w-full">
-          <TabsList className="grid grid-cols-4 mb-6">
-            <TabsTrigger value="account">Account</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-            <TabsTrigger value="privacy">Privacy</TabsTrigger>
-            <TabsTrigger value="preferences">Preferences</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="account">
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Manage your account details</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center gap-4">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src="/placeholder.svg?height=80&width=80" />
-                    <AvatarFallback className="text-xl">AL</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="font-medium mb-1">Profile Photo</h3>
-                    <p className="text-sm text-gray-500 mb-2">This photo will be used for your digital identity</p>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        Change Photo
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-50">
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="first-name">First Name</Label>
-                    <Input id="first-name" defaultValue="Alex" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="last-name">Last Name</Label>
-                    <Input id="last-name" defaultValue="Lee" />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" defaultValue="alex.lee@example.com" />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="did">Decentralized Identifier (DID)</Label>
-                  <div className="flex">
-                    <Input
-                      id="did"
-                      defaultValue="did:uniid:1234...5678"
-                      readOnly
-                      className="rounded-r-none bg-gray-50"
-                    />
-                    <Button variant="outline" className="rounded-l-none border-l-0">
-                      Copy
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-500">Your unique identifier on the UniID network</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-red-600">Danger Zone</CardTitle>
-                <CardDescription>Irreversible account actions</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border border-red-200 rounded-lg bg-red-50">
-                  <div>
-                    <h3 className="font-medium text-red-700 mb-1">Delete Account</h3>
-                    <p className="text-sm text-red-600">
-                      Permanently delete your account and all associated credentials. This action cannot be undone.
-                    </p>
-                  </div>
-                  <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-100 hover:text-red-700">
-                    Delete Account
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="security">
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Authentication</CardTitle>
-                <CardDescription>Manage your security settings</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+            <CardDescription>Customize how UniID looks and feels</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="theme">Theme</Label>
+              <Select value={currentUser.settings.theme} onValueChange={(value) => updateSettings("theme", value)}>
+                <SelectTrigger id="theme">
+                  <SelectValue placeholder="Select theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">
                     <div className="flex items-center gap-2">
-                      <Smartphone className="h-4 w-4 text-purple-600" />
-                      <Label htmlFor="biometric">Biometric Authentication</Label>
+                      <Sun className="h-4 w-4" />
+                      Light
                     </div>
-                    <p className="text-sm text-gray-500">Use fingerprint or face recognition to unlock your wallet</p>
-                  </div>
-                  <Switch id="biometric" checked={biometricAuth} onCheckedChange={setBiometricAuth} />
-                </div>
+                  </SelectItem>
+                  <SelectItem value="dark">
+                    <div className="flex items-center gap-2">
+                      <Moon className="h-4 w-4" />
+                      Dark
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="system">
+                    <div className="flex items-center gap-2">
+                      <Laptop className="h-4 w-4" />
+                      System
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                <div className="space-y-4 pt-4 border-t">
-                  <div className="flex items-center gap-2">
-                    <Key className="h-4 w-4 text-purple-600" />
-                    <h3 className="font-medium">Recovery Phrase</h3>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Your recovery phrase is the only way to restore your wallet if you lose access to your device. Keep
-                    it in a safe place and never share it with anyone.
+            <div className="space-y-2">
+              <Label htmlFor="language">Language</Label>
+              <Select
+                value={currentUser.settings.language}
+                onValueChange={(value) => updateSettings("language", value)}
+              >
+                <SelectTrigger id="language">
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="es">Español</SelectItem>
+                  <SelectItem value="fr">Français</SelectItem>
+                  <SelectItem value="de">Deutsch</SelectItem>
+                  <SelectItem value="zh">中文</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="notifications">Notifications</Label>
+                <Switch
+                  id="notifications"
+                  checked={currentUser.settings.notifications}
+                  onCheckedChange={(checked) => updateSettings("notifications", checked)}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Receive notifications about credential updates and verification requests
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Security</CardTitle>
+            <CardDescription>Manage your security settings</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="biometrics">Use Biometrics</Label>
+                <Switch
+                  id="biometrics"
+                  checked={currentUser.settings.useBiometrics}
+                  onCheckedChange={(checked) => updateSettings("useBiometrics", checked)}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">Use fingerprint or face ID to unlock your wallet</p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="privacy-mode">Privacy Mode</Label>
+                <Switch
+                  id="privacy-mode"
+                  checked={currentUser.settings.privacyMode}
+                  onCheckedChange={(checked) => updateSettings("privacyMode", checked)}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">Hide sensitive information when sharing your screen</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="auto-lock">Auto-Lock (minutes)</Label>
+              <div className="flex items-center gap-4">
+                <Slider
+                  id="auto-lock"
+                  min={1}
+                  max={30}
+                  step={1}
+                  value={[currentUser.settings.autoLock]}
+                  onValueChange={(value) => updateSettings("autoLock", value[0])}
+                />
+                <span className="text-sm font-medium">{currentUser.settings.autoLock} min</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Automatically lock your wallet after a period of inactivity
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="zkp">Zero-Knowledge Proofs</Label>
+                  {!canUseZkp && (
+                    <Badge variant="outline" className="text-xs">
+                      Requires Full Access
+                    </Badge>
+                  )}
+                </div>
+                <Switch
+                  id="zkp"
+                  checked={currentUser.settings.useZkp && canUseZkp}
+                  onCheckedChange={(checked) => updateSettings("useZkp", checked)}
+                  disabled={!canUseZkp}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {canUseZkp
+                  ? "Share credentials without revealing all information"
+                  : "Document verification required to enable zero-knowledge proofs"}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="offline-mode">Offline Mode</Label>
+                  {!canUseOfflineMode && (
+                    <Badge variant="outline" className="text-xs">
+                      Requires Partial Access
+                    </Badge>
+                  )}
+                </div>
+                <Switch
+                  id="offline-mode"
+                  checked={currentUser.settings.offlineMode && canUseOfflineMode}
+                  onCheckedChange={(checked) => updateSettings("offlineMode", checked)}
+                  disabled={!canUseOfflineMode}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {canUseOfflineMode
+                  ? "Use your credentials without an internet connection"
+                  : "Face ID verification required to enable offline mode"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Backup & Recovery</CardTitle>
+            <CardDescription>Manage your backup and recovery options</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="backup-enabled">Automatic Backup</Label>
+                <Switch
+                  id="backup-enabled"
+                  checked={currentUser.settings.backupEnabled}
+                  onCheckedChange={(checked) => updateSettings("backupEnabled", checked)}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">Automatically backup your credentials and settings</p>
+            </div>
+
+            {currentUser.settings.backupEnabled && currentUser.settings.lastBackupDate && (
+              <div className="rounded-md bg-muted p-3">
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm">
+                    Last backup: {new Date(currentUser.settings.lastBackupDate).toLocaleString()}
                   </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline">View Recovery Phrase</Button>
-                    <Button>Back Up Now</Button>
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Device Management</CardTitle>
-                <CardDescription>Manage devices that have access to your wallet</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-green-100 p-2 rounded-full">
-                        <Smartphone className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">Current Device</h4>
-                        <p className="text-xs text-gray-500">Last active: Just now</p>
-                      </div>
-                    </div>
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Active</span>
-                  </div>
+            <div className="flex flex-col gap-2">
+              <Button variant="outline">
+                <Save className="mr-2 h-4 w-4" />
+                Create Manual Backup
+              </Button>
+              <Button variant="outline">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Restore from Backup
+              </Button>
+            </div>
 
-                  <Button variant="outline" className="w-full">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out From All Devices
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="privacy">
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Privacy Settings</CardTitle>
-                <CardDescription>Control how your data is used and shared</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-purple-600" />
-                      <Label htmlFor="zero-knowledge">Zero-Knowledge Proofs</Label>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      Use privacy-preserving proofs when sharing credentials (e.g., prove you're over 18 without
-                      revealing your birthdate)
-                    </p>
-                  </div>
-                  <Switch id="zero-knowledge" defaultChecked />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <Bell className="h-4 w-4 text-purple-600" />
-                      <Label htmlFor="notifications">Credential Usage Notifications</Label>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      Receive notifications when your credentials are used or verified
-                    </p>
-                  </div>
-                  <Switch id="notifications" checked={notifications} onCheckedChange={setNotifications} />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <Download className="h-4 w-4 text-purple-600" />
-                      <Label htmlFor="backup">Encrypted Backup</Label>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      Securely back up your credentials to the cloud with end-to-end encryption
-                    </p>
-                  </div>
-                  <Switch id="backup" checked={backupEnabled} onCheckedChange={setBackupEnabled} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Data Management</CardTitle>
-                <CardDescription>Export or delete your data</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button variant="outline" className="w-full">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export All Data
+            <Alert variant="warning">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Recovery Phrase</AlertTitle>
+              <AlertDescription>
+                Your recovery phrase is the only way to recover your wallet if you lose access to your device.
+                <Button variant="link" className="h-auto p-0 pl-1">
+                  View Recovery Phrase
                 </Button>
-                <p className="text-xs text-gray-500 text-center">
-                  Your data is stored locally on your device. UniID does not have access to your personal information.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
 
-          <TabsContent value="preferences">
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Appearance</CardTitle>
-                <CardDescription>Customize how UniID looks</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      {darkMode ? (
-                        <Moon className="h-4 w-4 text-purple-600" />
-                      ) : (
-                        <Sun className="h-4 w-4 text-purple-600" />
-                      )}
-                      <Label htmlFor="dark-mode">Dark Mode</Label>
-                    </div>
-                    <p className="text-sm text-gray-500">Switch between light and dark themes</p>
-                  </div>
-                  <Switch id="dark-mode" checked={darkMode} onCheckedChange={setDarkMode} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Advanced</CardTitle>
+            <CardDescription>Advanced settings and options</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Identity Information</Label>
+              <div className="rounded-md bg-muted p-3">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <span className="text-muted-foreground">DID:</span>
+                  <span className="font-mono text-xs truncate">{currentUser.did}</span>
+                  <span className="text-muted-foreground">Verification Status:</span>
+                  <span>{currentUser.verificationStatus}</span>
+                  <span className="text-muted-foreground">Trust Score:</span>
+                  <span>{currentUser.trustScore}</span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Language & Region</CardTitle>
-                <CardDescription>Set your preferred language and region</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-purple-600" />
-                    <Label htmlFor="language">Language</Label>
-                  </div>
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger id="language">
-                      <SelectValue placeholder="Select language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="english">English</SelectItem>
-                      <SelectItem value="spanish">Spanish</SelectItem>
-                      <SelectItem value="french">French</SelectItem>
-                      <SelectItem value="german">German</SelectItem>
-                      <SelectItem value="chinese">Chinese</SelectItem>
-                      <SelectItem value="arabic">Arabic</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            <div className="flex flex-col gap-2">
+              <Button variant="outline">
+                <Lock className="mr-2 h-4 w-4" />
+                Change Security Settings
+              </Button>
+              <Button variant="outline">
+                <Fingerprint className="mr-2 h-4 w-4" />
+                Manage Biometric Data
+              </Button>
+              <Button variant="outline">
+                <Globe className="mr-2 h-4 w-4" />
+                Manage Connected Services
+              </Button>
+            </div>
+
+            <Separator />
+
+            <Button variant="destructive" className="w-full">
+              Delete Account
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
