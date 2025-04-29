@@ -3,9 +3,10 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import { getUserData } from "@/lib/storage-utils"
-import { UnifiedNav } from "@/components/unified-nav"
+import { BottomNav } from "@/components/bottom-nav"
 import type { User } from "@/lib/types"
 import { mockUser, mockUserLimited, mockUserPartial } from "@/lib/mock-data"
+import { BadgeCheck, UserIcon } from "lucide-react"
 
 export default function DashboardLayout({
   children,
@@ -54,8 +55,33 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <UnifiedNav user={currentUser} notificationCount={3} />
-      <main className="flex-1 pb-16 md:pb-0">{children}</main>
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
+        <div className="container flex h-14 items-center">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
+              <BadgeCheck className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-bold">UniID</span>
+          </div>
+          <div className="flex flex-1 items-center justify-end gap-2">
+            <div className="flex items-center">
+              <div className="h-8 w-8 overflow-hidden rounded-full bg-muted">
+                {currentUser.profileImage ? (
+                  <img
+                    src={currentUser.profileImage || "/placeholder.svg"}
+                    alt={currentUser.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserIcon className="h-full w-full p-1.5" />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main className="flex-1 pb-20">{children}</main>
+      <BottomNav />
     </div>
   )
 }
