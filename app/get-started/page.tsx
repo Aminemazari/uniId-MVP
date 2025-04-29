@@ -38,9 +38,15 @@ export default function GetStartedPage() {
       content:
         "Document verification is required to access financial services. Limited access users can easily upgrade anytime by completing the document verification process.",
     },
-    \
-### UniID 2.0: Enhanced Digital Identity Wallet
+  ]
+    return (
+      <div>
+     <p> UniID 2.0: Enhanced Digital Identity Wallet</p> 
 
-I'll create an improved version of the UniID app that builds upon the existing implementation while incorporating the enhancements from the specification analysis.
+<p>I'll create an improved version of the UniID app that builds upon the existing implementation while incorporating the enhancements from the specification analysis.</p>
 
-First, let's create an improved theme with a more modern color scheme:
+<p>First, let's create an improved theme with a more modern color scheme:</p>
+</div>
+    )
+  }
+
